@@ -38,7 +38,7 @@ With **lazy.nvim**:
   },
   opts = { -- you can just pass {}, defaults below
     events = {
-      render_buffer = { "InsertLeave", "BufWinEnter", "TextChanged" },
+      render_buffer = { "InsertLeave", "BufWinEnter", "TextChanged", "BufEnter", "TabEnter" },
       clear_buffer = {"BufLeave"},
     },
     renderer_options = {

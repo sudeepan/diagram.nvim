@@ -21,7 +21,20 @@ vim.fn.mkdir(cache_dir, "p")
 ---@param options MermaidOptions
 ---@return table|nil
 M.render = function(source, options)
-  local hash = vim.fn.sha256(M.id .. ":" .. source)
+  -- The cache key covers every option that changes the image. Without them,
+  -- a diagram that was rendered once would keep its old PNG after the user
+  -- changes `theme`, `background`, `scale`, etc.
+  local key = table.concat({
+    M.id,
+    tostring(options.background),
+    tostring(options.theme),
+    tostring(options.scale),
+    tostring(options.width),
+    tostring(options.height),
+    table.concat(options.cli_args or {}, " "),
+    source,
+  }, "\n")
+  local hash = vim.fn.sha256(key)
   local path = vim.fn.resolve(cache_dir .. "/" .. hash .. ".png")
   if vim.fn.filereadable(path) == 1 then return { file_path = path } end
 

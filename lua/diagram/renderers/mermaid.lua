@@ -25,16 +25,23 @@ M.render = function(source, options)
   local path = vim.fn.resolve(cache_dir .. "/" .. hash .. ".png")
   if vim.fn.filereadable(path) == 1 then return { file_path = path } end
 
-  if not vim.fn.executable("mermaidx") then 
-    vim.notify("mermaidx not found in PATH. Please install mermaid-cli to use mermaid diagrams.", vim.log.levels.ERROR, { title = "Diagram.nvim" })
+  -- vim.fn.executable() returns 0 or 1, and 0 is truthy in Lua.
+  if vim.fn.executable("mermaidx") == 0 then
+    vim.notify(
+      "mermaidx not found in PATH. Install it with `pip install mermaidx` (or `pipx install mermaidx`).",
+      vim.log.levels.ERROR,
+      { title = "Diagram.nvim" }
+    )
     return nil
   end
 
   local tmpsource = vim.fn.tempname()
   vim.fn.writefile(vim.split(source, "\n"), tmpsource)
 
+  -- -q stops mermaidx from printing "saved to ..." on stderr after a successful render.
   local command_parts = {
     "mermaidx",
+    "-q",
   }
 
   -- Add custom CLI arguments if provided
@@ -47,40 +54,28 @@ M.render = function(source, options)
     "-o",
     path,
   })
-  if options.background then
-    table.insert(command_parts, "-b")
-    table.insert(command_parts, options.background)
-  end
-  if options.theme then
-    table.insert(command_parts, "-t")
-    table.insert(command_parts, options.theme)
-  end
-  if options.scale then
-    table.insert(command_parts, "-s")
-    table.insert(command_parts, options.scale)
-  end
-  if options.width then
-    table.insert(command_parts, "--width")
-    table.insert(command_parts, options.width)
-  end
-  if options.height then
-    table.insert(command_parts, "--height")
-    table.insert(command_parts, options.height)
-  end
+  if options.background then vim.list_extend(command_parts, { "-b", tostring(options.background) }) end
+  if options.theme then vim.list_extend(command_parts, { "-t", tostring(options.theme) }) end
+  if options.scale then vim.list_extend(command_parts, { "--scale", tostring(options.scale) }) end
+  if options.width then vim.list_extend(command_parts, { "-w", tostring(options.width) }) end
+  if options.height then vim.list_extend(command_parts, { "-H", tostring(options.height) }) end
 
-  local command = table.concat(command_parts, " ")
-
-  local job_id = vim.fn.jobstart(command, {
-    on_stdout = function(job_id, data, event) end,
-    on_stderr = function(job_id, data, event)
-      local error_msg = table.concat(data, "\n"):gsub("^%s+", ""):gsub("%s+$", "")
-      if error_msg ~= "" then
-        vim.notify("Failed to render mermaid diagram:\n" .. error_msg, vim.log.levels.ERROR, { title = "Diagram.nvim" })
-      end
+  -- Pass the command as a list so paths with spaces need no shell quoting.
+  local stderr_lines = {}
+  local job_id = vim.fn.jobstart(command_parts, {
+    on_stderr = function(_, data)
+      if data then vim.list_extend(stderr_lines, data) end
     end,
-    on_exit = function(job_id, exit_code, event)
-      -- local msg = string.format("Job %d exited with code %d.", job_id, exit_code)
-      -- vim.api.nvim_out_write(msg .. "\n")
+    on_exit = function(_, exit_code)
+      vim.fn.delete(tmpsource)
+      if exit_code ~= 0 then
+        local error_msg = vim.trim(table.concat(stderr_lines, "\n"))
+        vim.notify(
+          "Failed to render mermaid diagram (exit " .. exit_code .. "):\n" .. error_msg,
+          vim.log.levels.ERROR,
+          { title = "Diagram.nvim" }
+        )
+      end
     end,
   })
   return { file_path = path, job_id = job_id }

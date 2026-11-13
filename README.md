@@ -21,7 +21,7 @@ Integrations read buffers, extract diagram code, and dispatch work to the render
 
 | Renderer   | Requirements                                      |
 | ---------- | ------------------------------------------------- |
-| `mermaid`  | [mmdc](https://github.com/mermaid-js/mermaid-cli) |
+| `mermaid`  | [mermaidx](https://github.com/MohammadRaziei/mermaidx) (`pip install mermaidx`) |
 | `plantuml` | [plantuml](https://plantuml.com/download)         |
 | `d2`       | [d2](https://d2lang.com/)                         |
 | `gnuplot`  | [gnuplot](http://gnuplot.info/)                   |
@@ -44,11 +44,11 @@ With **lazy.nvim**:
     renderer_options = {
       mermaid = {
         background = nil, -- nil | "transparent" | "white" | "#hex"
-        theme = nil, -- nil | "default" | "dark" | "forest" | "neutral"
-        scale = 1, -- nil | 1 (default) | 2  | 3 | ...
+        theme = nil, -- nil | "default" | "dark" | "forest" | "neutral" | "neo" | "redux" | ...
+        scale = 1, -- nil | 1 | 2 | 3 | ...
         width = nil, -- nil | 800 | 400 | ...
         height = nil, -- nil | 600 | 300 | ...
-        cli_args = nil, -- nil | { "--no-sandbox" } | { "-p", "/path/to/puppeteer" } | ...
+        cli_args = nil, -- nil | { "--backend", "rust:merman" } | { "--css", "/path/to/style.css" } | ...
       },
       plantuml = {
         charset = nil,
@@ -79,11 +79,11 @@ You can pass custom command-line arguments to any renderer using the `cli_args` 
 
 **Common Use Cases:**
 
-1. **Fixing mmdc sandboxing issues (Nix/AppImage):**
+1. **Choosing a mermaidx backend (run `mermaidx --list-backends` to see what is installed):**
    ```lua
    renderer_options = {
      mermaid = {
-       cli_args = { "--no-sandbox" },
+       cli_args = { "--backend", "rust:merman" },
      },
    }
    ```
